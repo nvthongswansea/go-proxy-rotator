@@ -9,22 +9,8 @@ import (
 	cookiejar "github.com/juju/persistent-cookiejar"
 )
 
-// func createProxyClient(proxyUrl string, timeoutSec int) (*http.Client, error) {
-// 	parsedProxyURL, err := url.Parse(proxyUrl)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return &http.Client{
-// 		Transport: &http.Transport{
-// 			Proxy: http.ProxyURL(parsedProxyURL),
-// 		},
-// 		Timeout: time.Duration(timeoutSec) * time.Second,
-// 	}, nil
-// }
-
-func createProxyClient(cookieJar *cookiejar.Jar, proxyUrl string, timeoutSec int) (*http.Client, error) {
-	parsedProxyURL, err := url.Parse(proxyUrl)
+func createProxyClient(cookieJar *cookiejar.Jar, proxyURL string, timeoutSec int) (*http.Client, error) {
+	parsedProxyURL, err := url.Parse(proxyURL)
 	if err != nil {
 		return nil, err
 	}
