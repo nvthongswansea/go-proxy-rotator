@@ -1,6 +1,6 @@
-//Package goProxyRotator allows to create multiple proxy http clients
+//Package goproxyrotator allows to create multiple proxy http clients
 //as well as save cookie to persistent file
-package goProxyRotator
+package goproxyrotator
 
 import (
 	"errors"
