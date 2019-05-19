@@ -1,4 +1,6 @@
-package go_proxy_rotator
+//Package goProxyRotator allows to create multiple proxy http clients
+//as well as save cookie to persistent file
+package goProxyRotator
 
 import (
 	"math/rand"

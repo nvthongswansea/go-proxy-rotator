@@ -1,4 +1,6 @@
-package go_proxy_rotator
+//Package goProxyRotator allows to create multiple proxy http clients
+//as well as save cookie to persistent file
+package goProxyRotator
 
 import (
 	"errors"
@@ -50,8 +52,10 @@ type ProxyClientRotator struct {
 }
 
 //NewProxyRotator create new proxy client rotator.
+//Proxy url has to be in form: 'protocol://username:password@proxy_address:port'
 //The number of proxies' URLs has to be equal to the number of cookie files.
-//e.g. proxyURLs = ['1.2.3.4', '2.3.4.5', '1.1.1.1', '2.2.2.2']
+//e.g. proxyURLs = ['https://username:password@1.2.3.4:1080', 'https://username:password@2.3.4.5:1080',
+//'https://username:password@1.1.1.1:1080', 'https://username:password@2.2.2.2:1080']
 //cookieFiles = ['', 'proxy1', 'proxy2', 'proxy1'].
 //If cookie file is '', the corresponding proxy client does not use persistent cookie.
 //Many proxy clients can use the same cookie file.
