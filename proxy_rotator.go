@@ -14,18 +14,17 @@ import (
 	cookiejar "github.com/juju/persistent-cookiejar"
 )
 
+var warning = log.New(os.Stdout,
+	"WARNING: ",
+	log.Ldate|log.Ltime|log.Lshortfile)
+
 //EnhancedProxyClient a struct that contain the
 //http client, proxy infomation, cookie jar
 type EnhancedProxyClient struct {
-	HTTPclient *http.Client
-	proxyURL   string
-	m          *sync.Mutex
-	cookie     *cookiejar.Jar
-}
-
-//GetHTTPclient get http client from the enhanced proxy client
-func (c *EnhancedProxyClient) GetHTTPclient() *http.Client {
-	return c.HTTPclient
+	*http.Client
+	proxyURL string
+	m        *sync.Mutex
+	cookie   *cookiejar.Jar
 }
 
 //SaveCookie save cookie to file
@@ -65,9 +64,6 @@ type ProxyClientRotator struct {
 func NewProxyRotator(proxyURLs []string, cookieFiles []string, timeoutSec int, delayedTimeMsc int64, shuffle bool) (*ProxyClientRotator, error) {
 	var httpClientsWithProxies []*EnhancedProxyClient //Init array of http clients' pointer
 	var cookieJars = make(map[string]*cookiejar.Jar)
-	var warning = log.New(os.Stdout,
-		"WARNING: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
 
 	if len(proxyURLs) <= 0 {
 		return nil, errors.New("no proxies are given")
@@ -88,19 +84,20 @@ func NewProxyRotator(proxyURLs []string, cookieFiles []string, timeoutSec int, d
 	COOKIEFILESLOOP:
 		for j, cookieFile := range cookieFiles {
 			if i == j {
-				client, err := createProxyClient(cookieJars[cookieFile], URL, timeoutSec) //clients that use same cookie file will use same cookie jar
+				newClient, err := createProxyClient(cookieJars[cookieFile], URL, timeoutSec) //clients that use same cookie file will use same cookie jar
 				if err != nil {
 					return nil, err
 				}
+				newEnhancedClient := &EnhancedProxyClient{
+					Client:   newClient,
+					proxyURL: URL,
+					m:        &sync.Mutex{},
+				}
 				//Check if the proxy is alive
-				if isUsable := isClientUsable(client); isUsable {
-					httpClientsWithProxies = append(httpClientsWithProxies, &EnhancedProxyClient{
-						HTTPclient: client,
-						proxyURL:   URL,
-						m:          &sync.Mutex{},
-					})
+				if isUsable, message := isClientUsable(newEnhancedClient); isUsable {
+					httpClientsWithProxies = append(httpClientsWithProxies, newEnhancedClient)
 				} else {
-					warning.Println(URL, "is removed as it is not usable. Please check your proxy.")
+					warning.Println(URL, "is removed as it is not usable. Please check your proxy. Detail:", message)
 				}
 				break COOKIEFILESLOOP
 			}
@@ -137,12 +134,15 @@ func (r *ProxyClientRotator) AddProxyClient(proxyURL, cookieFile string, timeout
 	if err != nil {
 		return err
 	}
-	if isUsable := isClientUsable(newClient); isUsable {
-		currentClients = append(currentClients, &EnhancedProxyClient{
-			HTTPclient: newClient,
-			proxyURL:   proxyURL,
-		})
+	newEnhancedClient := &EnhancedProxyClient{
+		Client:   newClient,
+		proxyURL: proxyURL,
 	}
+	if isUsable, message := isClientUsable(newEnhancedClient); !isUsable {
+		warning.Println(proxyURL, "is removed as it is not usable. Please check your proxy. Detail:", message)
+		return nil
+	}
+	currentClients = append(currentClients, newEnhancedClient)
 	r.proxyHTTPClients = currentClients
 	return nil
 }
@@ -180,7 +180,7 @@ func (r *ProxyClientRotator) shuffleEnhancedClients() {
 func (r *ProxyClientRotator) CheckHealthAll() map[string]bool {
 	result := make(map[string]bool)
 	for _, enhancedProxyClient := range r.proxyHTTPClients {
-		isUsable := isClientUsable(enhancedProxyClient.HTTPclient)
+		isUsable, _ := isClientUsable(enhancedProxyClient)
 		result[enhancedProxyClient.proxyURL] = isUsable
 	}
 	return result

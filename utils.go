@@ -62,13 +62,13 @@ func shuffleClients(clients []*EnhancedProxyClient) []*EnhancedProxyClient {
 
 //isClientUsable is a function to check if a http client is usable.
 //There will be some bad cases that some proxies are not online
-func isClientUsable(client *http.Client) bool {
+func isClientUsable(client *EnhancedProxyClient) (bool, string) {
 	resp, err := client.Get("https://www.google.com")
 	if err != nil {
-		return false
+		return false, err.Error()
 	}
 	if resp != nil {
 		defer resp.Body.Close()
 	}
-	return true
+	return true, ""
 }
