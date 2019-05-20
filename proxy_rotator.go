@@ -92,6 +92,7 @@ func NewProxyRotator(proxyURLs []string, cookieFiles []string, timeoutSec int, d
 					Client:   newClient,
 					proxyURL: URL,
 					m:        &sync.Mutex{},
+					cookie:   cookieJars[cookieFile],
 				}
 				//Check if the proxy is alive
 				if isUsable, message := isClientUsable(newEnhancedClient); isUsable {
@@ -137,6 +138,8 @@ func (r *ProxyClientRotator) AddProxyClient(proxyURL, cookieFile string, timeout
 	newEnhancedClient := &EnhancedProxyClient{
 		Client:   newClient,
 		proxyURL: proxyURL,
+		m:        &sync.Mutex{},
+		cookie:   cookieJar,
 	}
 	if isUsable, message := isClientUsable(newEnhancedClient); !isUsable {
 		warning.Println(proxyURL, "is removed as it is not usable. Please check your proxy. Detail:", message)
