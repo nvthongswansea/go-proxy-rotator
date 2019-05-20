@@ -99,8 +99,9 @@ func NewProxyRotator(proxyURLs []string, cookieFiles []string, timeoutSec int, d
 						proxyURL:   URL,
 						m:          &sync.Mutex{},
 					})
+				} else {
+					warning.Println(URL, "is removed as it is not usable. Please check your proxy.")
 				}
-				warning.Println(URL, "is removed as it is not usable. Please check your proxy.")
 				break COOKIEFILESLOOP
 			}
 		}
@@ -158,16 +159,20 @@ func (r *ProxyClientRotator) GetProxyClient() *EnhancedProxyClient {
 			currentIndex = int((interval / r.delayedTimeMsc) % int64(len(r.proxyHTTPClients)))
 		}
 	} else {
-		currentIndex := r.index % uint32(len(r.proxyHTTPClients))
-		atomic.SwapUint32(&r.index, currentIndex+1)
+		currentIndex = int(r.index) % len(r.proxyHTTPClients)
+		atomic.SwapUint32(&r.index, uint32(currentIndex+1))
 	}
-
 	//if this is the new round (means index = 0) and shuffling is enabled
-	if r.shuffle && currentIndex == 0 {
-		r.proxyHTTPClients = shuffleClients(r.proxyHTTPClients)
+	if r.shuffle && currentIndex == (len(r.proxyHTTPClients)-1) {
+		defer r.shuffleEnhancedClients()
 	}
 
 	return r.proxyHTTPClients[currentIndex]
+}
+
+//shuffleEnhancedClients shuffle client slice in rotator
+func (r *ProxyClientRotator) shuffleEnhancedClients() {
+	r.proxyHTTPClients = shuffleClients(r.proxyHTTPClients)
 }
 
 //CheckHealthAll checks health of all http clients
